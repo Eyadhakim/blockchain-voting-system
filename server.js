@@ -4,7 +4,7 @@ const { ethers } = require('ethers');
 
 const app = express();
 app.use(express.json());
-app.use(express.static('client'));
+app.use(express.static('/client'));
 
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
