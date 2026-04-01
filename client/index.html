@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vote</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@4/dist/fp.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #0f0f0f;
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .vote-count {
+            font-size: 5rem;
+            font-weight: 700;
+            line-height: 1;
+            color: #00D4FF;
+        }
+
+        .vote-label {
+            font-size: 0.85rem;
+            color: #555;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        button {
+            background: #00D4FF;
+            color: #000;
+            border: none;
+            padding: 14px 48px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        button:not(:disabled):hover {
+            opacity: 0.85;
+        }
+
+        #result {
+            font-size: 0.85rem;
+            color: #aaa;
+            word-break: break-all;
+            max-width: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div>
+            <div class="vote-count" id="voteCount">—</div>
+            <div class="vote-label">Total Votes</div>
+        </div>
+        <h1>Cast Your Vote</h1>
+        <button id="voteBtn">Vote</button>
+        <p id="result"></p>
+    </div>
+
+    <script src="/fp.min.js"></script>
+    <script>
+        const btn = document.getElementById('voteBtn');
+        const result = document.getElementById('result');
+        const voteCount = document.getElementById('voteCount');
+
+        async function getFingerprint() {
+            const fp = await FingerprintJS.load();
+            const res = await fp.get();
+            return res.visitorId;
+        }
+
+        async function fetchVoteCount() {
+            try {
+                const res = await fetch('/votecount');
+                const data = await res.json();
+                voteCount.textContent = data.count;
+            } catch {
+                voteCount.textContent = '—';
+            }
+        }
+
+        fetchVoteCount();
+
+        btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            result.textContent = 'Submitting your vote...';
+
+            try {
+                const fingerprint = await getFingerprint();
+
+                const response = await fetch('/vote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fingerprint })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    result.textContent = 'Vote recorded! TX: ' + data.tx;
+                    fetchVoteCount();
+                } else {
+                    result.textContent = 'Error: ' + data.error;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                result.textContent = 'Something went wrong.';
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
